@@ -44,7 +44,9 @@ class ParserMessage(Parser.Parser):
         # log
         if log.isEnabledFor(logging.DEBUG):
             log.debug("received data {0}".format(input))
-        s=[chr(c) for c in input]
-        print s
+        s=''.join([chr(c) for c in input])
+        print "MESSAGE:",s
 
+        eventType='message'
+        source=[0,0,0,0,0,0,0,0]
         return (eventType,(source,input))
