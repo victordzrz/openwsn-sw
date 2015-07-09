@@ -1,12 +1,18 @@
-# Copyright (c) 2010-2013, Regents of the University of California. 
-# All rights reserved. 
-#  
+# Copyright (c) 2010-2013, Regents of the University of California.
+# All rights reserved.
+#
 # Released under the BSD 3-Clause license as published at the link below.
 # https://openwsn.atlassian.net/wiki/display/OW/License
 import logging
+import sys
 log = logging.getLogger('ParserData')
-log.setLevel(logging.ERROR)
+log.setLevel(logging.DEBUG)
 log.addHandler(logging.NullHandler())
+ch = logging.StreamHandler(sys.stdout)
+ch.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+ch.setFormatter(formatter)
+log.addHandler(ch)
 
 import struct
 
@@ -16,68 +22,68 @@ from ParserException import ParserException
 import Parser
 
 class ParserData(Parser.Parser):
-    
+
     HEADER_LENGTH  = 2
     MSPERSLOT      = 15 #ms per slot.
-    
+
     IPHC_SAM       = 4
     IPHC_DAM       = 0
-    
-     
+
+
     def __init__(self):
-        
+
         # log
         log.info("create instance")
-        
+
         # initialize parent class
         Parser.Parser.__init__(self,self.HEADER_LENGTH)
-        
+
         self._asn= ['asn_4',                     # B
           'asn_2_3',                   # H
           'asn_0_1',                   # H
          ]
-    
-    
+
+
     #======================== public ==========================================
-    
+
     def parseInput(self,input):
         # log
         if log.isEnabledFor(logging.DEBUG):
             log.debug("received data {0}".format(input))
-        
+
         # ensure input not short longer than header
         self._checkLength(input)
-   
+
         headerBytes = input[:2]
-        #asn comes in the next 5bytes.  
-        
+        #asn comes in the next 5bytes.
+
         asnbytes=input[2:7]
         (self._asn) = struct.unpack('<BHH',''.join([chr(c) for c in asnbytes]))
-        
+
         #source and destination of the message
         dest = input[7:15]
-        
+
         #source is elided!!! so it is not there.. check that.
         source = input[15:23]
-        
+
         if log.isEnabledFor(logging.DEBUG):
             a="".join(hex(c) for c in dest)
             log.debug("destination address of the packet is {0} ".format(a))
-        
+
         if log.isEnabledFor(logging.DEBUG):
             a="".join(hex(c) for c in source)
             log.debug("source address (just previous hop) of the packet is {0} ".format(a))
-        
+
         # remove asn src and dest and mote id at the beginning.
         # this is a hack for latency measurements... TODO, move latency to an app listening on the corresponding port.
         # inject end_asn into the packet as well
         input = input[23:]
-        
+
         if log.isEnabledFor(logging.DEBUG):
             log.debug("packet without source,dest and asn {0}".format(input))
-        
+
         # when the packet goes to internet it comes with the asn at the beginning as timestamp.
-         
+
         # cross layer trick here. capture UDP packet from udpLatency and get ASN to compute latency.
         # then notify a latency component that will plot that information.
         # port 61001==0xee,0x49
@@ -85,12 +91,12 @@ class ParserData(Parser.Parser):
            if (input[36]==238 and input[37]==73):
             # udp port 61001 for udplatency app.
                aux      = input[len(input)-5:]               # last 5 bytes of the packet are the ASN in the UDP latency packet
-               diff     = self._asndiference(aux,asnbytes)   # calculate difference 
+               diff     = self._asndiference(aux,asnbytes)   # calculate difference
                timeinus = diff*self.MSPERSLOT                # compute time in ms
                SN       = input[len(input)-23:len(input)-21] # SN sent by mote
                parent   = input[len(input)-21:len(input)-13] # the parent node is the first element (used to know topology)
                node     = input[len(input)-13:len(input)-5]  # the node address
-               
+
                if (timeinus<0xFFFF):
                # notify latency manager component. only if a valid value
                   dispatcher.send(
@@ -111,25 +117,25 @@ class ParserData(Parser.Parser):
            else:
                # no udplatency
                # print input
-               pass     
+               pass
         else:
-           pass      
-       
+           pass
+
         eventType='data'
         # notify a tuple including source as one hop away nodes elide SRC address as can be inferred from MAC layer header
         return (eventType,(source,input))
 
  #======================== private =========================================
- 
+
     def _asndiference(self,init,end):
-      
+
        asninit = struct.unpack('<HHB',''.join([chr(c) for c in init]))
        asnend  = struct.unpack('<HHB',''.join([chr(c) for c in end]))
        if (asnend[2] != asninit[2]): #'byte4'
           return 0xFFFFFFFF
        else:
            pass
-       
+
        diff = 0;
        if (asnend[1] == asninit[1]):#'bytes2and3'
           return asnend[0]-asninit[0]#'bytes0and1'
@@ -137,7 +143,7 @@ class ParserData(Parser.Parser):
           if (asnend[1]-asninit[1]==1):##'bytes2and3'              diff  = asnend[0]#'bytes0and1'
               diff += 0xffff-asninit[0]#'bytes0and1'
               diff += 1;
-          else:   
+          else:
               diff = 0xFFFFFFFF
-       
+
        return diff

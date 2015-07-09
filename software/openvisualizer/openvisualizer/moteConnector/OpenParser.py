@@ -1,6 +1,6 @@
-# Copyright (c) 2010-2013, Regents of the University of California. 
-# All rights reserved. 
-#  
+# Copyright (c) 2010-2013, Regents of the University of California.
+# All rights reserved.
+#
 # Released under the BSD 3-Clause license as published at the link below.
 # https://openwsn.atlassian.net/wiki/display/OW/License
 import logging
@@ -14,11 +14,12 @@ import ParserStatus
 import ParserInfoErrorCritical as ParserIEC
 import ParserData
 import ParserPacket
+import ParserMessage
 
 class OpenParser(Parser.Parser):
-    
+
     HEADER_LENGTH  = 1
-    
+
     SERFRAME_MOTE2PC_DATA              = ord('D')
     SERFRAME_MOTE2PC_STATUS            = ord('S')
     SERFRAME_MOTE2PC_INFO              = ParserIEC.ParserInfoErrorCritical.SEVERITY_INFO
@@ -26,24 +27,27 @@ class OpenParser(Parser.Parser):
     SERFRAME_MOTE2PC_CRITICAL          = ParserIEC.ParserInfoErrorCritical.SEVERITY_CRITICAL
     SERFRAME_MOTE2PC_REQUEST           = ord('R')
     SERFRAME_MOTE2PC_SNIFFED_PACKET    = ord('P')
-    
+
     SERFRAME_PC2MOTE_SETDAGROOT        = ord('R')
     SERFRAME_PC2MOTE_DATA              = ord('D')
     SERFRAME_PC2MOTE_TRIGGERSERIALECHO = ord('S')
     SERFRAME_PC2MOTE_COMMAND_GD        = ord('G')
-    
+
     SERFRAME_ACTION_YES                = ord('Y')
     SERFRAME_ACTION_NO                 = ord('N')
     SERFRAME_ACTION_TOGGLE             = ord('T')
-    
+
+    #CUSTOM
+    SERFRAME_MOTE2PC_MESSAGE           = ord('M')
+
     def __init__(self):
-        
+
         # log
         log.info("create instance")
-        
+
         # initialize parent class
         Parser.Parser.__init__(self,self.HEADER_LENGTH)
-        
+
         # subparser objects
         self.parserStatus    = ParserStatus.ParserStatus()
         self.parserInfo      = ParserIEC.ParserInfoErrorCritical(self.SERFRAME_MOTE2PC_INFO)
@@ -51,7 +55,8 @@ class OpenParser(Parser.Parser):
         self.parserCritical  = ParserIEC.ParserInfoErrorCritical(self.SERFRAME_MOTE2PC_CRITICAL)
         self.parserData      = ParserData.ParserData()
         self.parserPacket    = ParserPacket.ParserPacket()
-        
+        self.parserMessage   = ParserMessage.ParserMessage()
+
         # register subparsers
         self._addSubParser(
             index  = 0,
@@ -83,6 +88,11 @@ class OpenParser(Parser.Parser):
             val    = self.SERFRAME_MOTE2PC_SNIFFED_PACKET,
             parser = self.parserPacket.parseInput,
         )
+        self._addSubParser(
+            index = 0,
+            val   = self.SERFRAME_MOTE2PC_MESSAGE,
+            parser = self.parserMessage.parseInput,
+        )
     #======================== public ==========================================
-    
+
     #======================== private =========================================
