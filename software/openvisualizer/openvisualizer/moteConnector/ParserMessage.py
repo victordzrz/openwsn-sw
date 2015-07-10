@@ -5,6 +5,7 @@
 # https://openwsn.atlassian.net/wiki/display/OW/License
 import logging
 import sys
+import time
 log = logging.getLogger('ParserData')
 log.setLevel(logging.DEBUG)
 log.addHandler(logging.NullHandler())
@@ -44,8 +45,13 @@ class ParserMessage(Parser.Parser):
         # log
         if log.isEnabledFor(logging.DEBUG):
             log.debug("received data {0}".format(input))
-        s=''.join([chr(c) for c in input])
-        print "MESSAGE:",s
+        moteId=input[:2]
+        asn=input[2:7]
+        message=input[7:]
+        sMessage=''.join([chr(c) for c in message])
+        sId=''.join([format(c,'x') for c in moteId[::-1]])
+        sAsn=''.join([format(c,'x') for c in asn[::-1]])
+        print time.strftime('%H:%M:%S'),"MESSAGE",sId,"[",sAsn,"]:",sMessage
 
         eventType='message'
         source=[0,0,0,0,0,0,0,0]
