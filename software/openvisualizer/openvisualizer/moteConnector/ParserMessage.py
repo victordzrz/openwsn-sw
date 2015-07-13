@@ -48,7 +48,19 @@ class ParserMessage(Parser.Parser):
         moteId=input[:2]
         asn=input[2:7]
         message=input[7:]
-        sMessage=''.join([chr(c) for c in message])
+        parsingHex=False
+        sMessage=''
+        for c in message:
+            if c==ord('%'):
+                parsingHex=not parsingHex
+                if parsingHex:
+                    sMessage=sMessage+"0x"
+            else:
+                if parsingHex:
+                    sMessage=sMessage+format(c,'x')
+                else:
+                    sMessage=sMessage+chr(c)
+        #sMessage=''.join([chr(c) for c in message])
         sId=''.join([format(c,'x') for c in moteId[::-1]])
         sAsn=''.join([format(c,'x') for c in asn[::-1]])
         print time.strftime('%H:%M:%S'),"MESSAGE",sId,"[",sAsn,"]:",sMessage
