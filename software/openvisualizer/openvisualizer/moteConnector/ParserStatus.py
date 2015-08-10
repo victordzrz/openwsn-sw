@@ -1,6 +1,6 @@
-# Copyright (c) 2010-2013, Regents of the University of California. 
-# All rights reserved. 
-#  
+# Copyright (c) 2010-2013, Regents of the University of California.
+# All rights reserved.
+#
 # Released under the BSD 3-Clause license as published at the link below.
 # https://openwsn.atlassian.net/wiki/display/OW/License
 import logging
@@ -25,20 +25,20 @@ class FieldParsingKey(object):
         self.fields     = fields
 
 class ParserStatus(Parser.Parser):
-    
+
     HEADER_LENGTH       = 4
-    
+
     def __init__(self):
-        
+
         # log
         log.info("create instance")
-        
+
         # initialize parent class
         Parser.Parser.__init__(self,self.HEADER_LENGTH)
-        
+
         # local variables
         self.fieldsParsingKeys    = []
-        
+
         # register fields
         self._addFieldsParser   (
                                     3,
@@ -78,7 +78,7 @@ class ParserStatus(Parser.Parser):
                                         'myPrefix_7',                # B
                                     ],
                                 )
-        self._addFieldsParser   (   
+        self._addFieldsParser   (
                                     3,
                                     2,
                                     'MyDagRank',
@@ -127,19 +127,19 @@ class ParserStatus(Parser.Parser):
                                     3,
                                     6,
                                     'ScheduleRow',
-                                    '<BHBBBBQQBBBBHH',
+                                    '<BHBBBBQQHHHBHH',
                                     [
                                         'row',                       # B
-                                        'slotOffset',                # H 
+                                        'slotOffset',                # H
                                         'type',                      # B
                                         'shared',                    # B
                                         'channelOffset',             # B
                                         'neighbor_type',             # B
                                         'neighbor_bodyH',            # Q
                                         'neighbor_bodyL',            # Q
-                                        'numRx',                     # B
-                                        'numTx',                     # B
-                                        'numTxACK',                  # B
+                                        'numRx',                     # H
+                                        'numTx',                     # H
+                                        'numTxACK',                  # H
                                         'lastUsedAsn_4',             # B
                                         'lastUsedAsn_2_3',           # H
                                         'lastUsedAsn_0_1',           # H
@@ -187,7 +187,7 @@ class ParserStatus(Parser.Parser):
                                     3,
                                     9,
                                     'NeighborsRow',
-                                    '<BBBBBBQQHbBBBBBHHB',
+                                    '<BBBBBBQQHbHHHBBHHB',
                                     [
                                         'row',                       # B
                                         'used',                      # B
@@ -199,9 +199,9 @@ class ParserStatus(Parser.Parser):
                                         'addr_bodyL',                # Q
                                         'DAGrank',                   # H
                                         'rssi',                      # b
-                                        'numRx',                     # B
-                                        'numTx',                     # B
-                                        'numTxACK',                  # B
+                                        'numRx',                     # H
+                                        'numTx',                     # H
+                                        'numTxACK',                  # H
                                         'numWraps',                  # B
                                         'asn_4',                     # B
                                         'asn_2_3',                   # H
@@ -209,7 +209,7 @@ class ParserStatus(Parser.Parser):
                                         'joinPrio',                  # B
                                     ],
                                 )
-        self._addFieldsParser   (   
+        self._addFieldsParser   (
                                     3,
                                     10,
                                     'kaPeriod',
@@ -218,44 +218,44 @@ class ParserStatus(Parser.Parser):
                                         'kaPeriod',                  # H
                                     ],
                                 )
-    
+
     #======================== public ==========================================
-    
+
     def parseInput(self,input):
-        
+
         # log
         if log.isEnabledFor(logging.DEBUG):
             log.debug("received input={0}".format(input))
-        
+
         # ensure input not short longer than header
         self._checkLength(input)
-        
+
         headerBytes = input[:3]
-        
+
         # extract moteId and statusElem
         try:
            (moteId,statusElem) = struct.unpack('<HB',''.join([chr(c) for c in headerBytes]))
         except struct.error:
             raise ParserException(ParserException.DESERIALIZE,"could not extract moteId and statusElem from {0}".format(headerBytes))
-        
+
         # log
         if log.isEnabledFor(logging.DEBUG):
             log.debug("moteId={0} statusElem={1}".format(moteId,statusElem))
-        
+
         # jump the header bytes
         input = input[3:]
-        
+
         # call the next header parser
         for key in self.fieldsParsingKeys:
             if statusElem==key.val:
-            
+
                 # log
                 if log.isEnabledFor(logging.DEBUG):
                     log.debug("parsing {0}, ({1} bytes) as {2}".format(input,len(input),key.name))
-                
+
                 # parse byte array
                 try:
-                    fields = struct.unpack(key.structure,''.join([chr(c) for c in input]))                     
+                    fields = struct.unpack(key.structure,''.join([chr(c) for c in input]))
                 except struct.error as err:
                     raise ParserException(
                             ParserException.DESERIALIZE,
@@ -266,28 +266,28 @@ class ParserStatus(Parser.Parser):
                                 str(err)
                             )
                         )
-                
+
                 # map to name tuple
                 returnTuple = self.named_tuple[key.name](*fields)
-                
+
                 # log
                 if log.isEnabledFor(logging.DEBUG):
                     log.debug("parsed into {0}".format(returnTuple))
-                
+
                 # map to name tuple
                 return ('status',returnTuple)
-        
+
         # if you get here, no key was found
         raise ParserException(ParserException.NO_KEY, "type={0} (\"{1}\")".format(
             input[0],
             chr(input[0])))
-    
+
     #======================== private =========================================
-    
+
     def _addFieldsParser(self,index=None,val=None,name=None,structure=None,fields=None):
-    
+
         # add to fields parsing keys
         self.fieldsParsingKeys.append(FieldParsingKey(index,val,name,structure,fields))
-        
+
         # define named tuple
         self.named_tuple[name] = collections.namedtuple("Tuple_"+name, fields)
