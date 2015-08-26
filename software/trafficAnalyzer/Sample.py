@@ -5,9 +5,13 @@ class Sample:
     def __init__(self):
         self.timeStamp=time.time()
         self.moteData=dict()
+        self.moteSignal=dict()
 
     def addReading(self,moteIP,slot,txNum,ackNum):
         self.moteData[(moteIP,slot)]=(txNum,ackNum)
+
+    def setSignal(self,moteIP,signal):
+        self.moteSignal[moteIP]=signal
 
     def getMotesIP(self):
         ips=set();
@@ -28,7 +32,7 @@ class Sample:
             if e[0]==ip:
                 txNum+=self.moteData[e][0]
                 ackNum+=self.moteData[e][1]
-        return (txNum,ackNum)
+        return (txNum,ackNum),self.moteSignal[ip]
 
     def getDataBySlot(self,slot):
         txNum=0
@@ -37,7 +41,8 @@ class Sample:
             if e[1]==slot:
                 txNum+=self.moteData[e][0]
                 ackNum+=self.moteData[e][1]
-        return (txNum,ackNum)
+                signal=self.moteSignal[e[0]]
+        return (txNum,ackNum),signal
 
     def getData(self):
         return self.moteData
@@ -78,7 +83,9 @@ class Sample:
         for e in self.moteData.values():
             txSum+=e[0]
             ackSum+=e[1]
-        return (txSum,ackSum)
+        averageRSSI=sum([s[0] for s in self.moteSignal.values()])/float(len(self.moteSignal))
+        averageLQI=sum([s[1] for s in self.moteSignal.values()])/float(len(self.moteSignal))
+        return (txSum,ackSum),(averageRSSI,averageLQI)
 
     def __str__(self):
-        return str(self.timeStamp)+':'+str(self.moteData)
+        return str(self.timeStamp)+':'+str(self.moteData)+'@'+self.moteSignal

@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt
 class MotesPlot:
 
     def __init__(self):
-        self.fig=plt.figure()
-        self.subp=self.fig.add_subplot(111)
+        self.fig,self.subp=plt.subplots()
         self.subp.set_xlim(0,300)
         self.subp.set_ylim(0.8,1.1)
         self.motesPlot=None
@@ -26,19 +25,19 @@ class MotesPlot:
             self.motesPlot=dict()
             self.motesData=dict()
             for mote in sample.getMotesIP():
-                txNum,ackNum=sample.getDataByMote(mote)
-                self.motesPlot[mote],=self.subp.plot([],[],label=mote)
+                txNum,ackNum=sample.getDataByMote(mote)[0]
+                self.motesPlot[mote],=self.subp.plot([],[],'-')
+                self.motesPlot[mote].set_label(mote)
                 self.motesData[mote]=[[time],[float(ackNum)/float(txNum)]]
-            plt.legend()
-
+            self.subp.legend(loc=2,fontsize=8)
         else:
             time=sample.getTime()-self.startTime
             titleText='m = ['
             for mote in sample.getMotesIP():
                 titleText+=mote+'='+str(str(round(sum(self.motesData[mote][1])/float(len(self.motesData[mote][1])),4)))+' '
                 self.motesData[mote][0].append(time)
-                txNum,ackNum=sample.getDataByMote(mote)
-                txNumLast,ackNumLast=self.lastSample.getDataByMote(mote)
+                txNum,ackNum=sample.getDataByMote(mote)[0]
+                txNumLast,ackNumLast=self.lastSample.getDataByMote(mote)[0]
                 self.motesData[mote][1].append(float(ackNum-ackNumLast)/float(txNum-txNumLast))
             titleText+=']'
             self.subp.set_title(titleText)

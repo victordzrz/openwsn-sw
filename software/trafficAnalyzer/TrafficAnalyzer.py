@@ -4,20 +4,22 @@ import time
 from Plotter import Plotter
 from DRPlot import DRPlot
 from MotesPlot import MotesPlot
+from SignalPlot import SignalPlot
 from Sample import Sample
 
 MOTE_PREFIX='bbbb::0012:4b00:060d:'
 NUM_CELLS=2
-SECOND_SAMPLE=2
-NUM_SAMPLES=60
+SECOND_SAMPLE=3
+NUM_SAMPLES=90
 
 
 def main():
     connection,ipList=setUp()
     sampleList=list()
     plotter=Plotter()
-    plotter.addPlot(DRPlot())
+    #plotter.addPlot(DRPlot())
     plotter.addPlot(MotesPlot())
+    plotter.addPlot(SignalPlot())
     for i in range(0,NUM_SAMPLES):
         sample=getSample(connection,ipList)
         print '.'
@@ -65,11 +67,12 @@ def addCells(connection,ip):
 def getSample(connection,ips):
     s=Sample()
     for ip in ips:
-        data=getTrafficData(connection,ip)
+        data,signal=getTrafficData(connection,ip)
         if data == None:
             return None
         for e in data:
             s.addReading(ip,e[0],e[1],e[2])
+        s.setSignal(ip,signal)
     return s
 
 def getTrafficData(connection,ip):
@@ -81,15 +84,21 @@ def getTrafficData(connection,ip):
     stringResponse=''.join([chr(b) for b in response])
     lines=stringResponse.split('\n');
     dataTraffic=list()
+    rssi=None
+    lqi=None
     for line in lines:
-        if len(line) > 5:
+        if ':' in line:
             slotSplit=line.split(':')
             slot=int(slotSplit[0],16)
             dataSplit=slotSplit[1].split('/')
             numTx=int(dataSplit[0],16)
             numAck=int(dataSplit[1],16)
             dataTraffic.append((slot,numTx,numAck))
-    return dataTraffic
+        elif ',' in line:
+            signalSplit=line.split(',')
+            rssi=int(signalSplit[0],16)-255
+            lqi=int(signalSplit[1],16)
+    return dataTraffic,(rssi,lqi)
 
 if __name__ == "__main__":
     main()

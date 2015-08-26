@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt
 class DRPlot:
 
     def __init__(self):
-        self.fig=plt.figure()
-        self.subp=self.fig.add_subplot(111)
+        self.fig,self.subp=plt.subplots()
         self.subp.set_ylim(0.8,1.1)
         self.a0,=self.subp.plot([],[],'r')
         plt.ylabel("Delivery Rate")
@@ -24,13 +23,13 @@ class DRPlot:
             time=0
             self.xData.append(time)
             self.startTime=sample.getTime()
-            txNum,ackNum=sample.getTotalSum()
+            txNum,ackNum=sample.getTotalSum()[0]
             self.yData.append(float(ackNum)/float(txNum))
         else:
             time=sample.getTime()-self.startTime
             self.xData.append(time)
-            txNum,ackNum=sample.getTotalSum()
-            txNumLast,ackNumLast=self.lastSample.getTotalSum()
+            txNum,ackNum=sample.getTotalSum()[0]
+            txNumLast,ackNumLast=self.lastSample.getTotalSum()[0]
             self.yData.append(float(ackNum-ackNumLast)/float(txNum-txNumLast))
         text='m = {0}'.format(str(round(sum(self.yData)/float(len(self.yData)),4)))
         self.subp.set_title(text)
