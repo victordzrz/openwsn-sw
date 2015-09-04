@@ -5,52 +5,54 @@ from Plotter import Plotter
 from DRPlot import DRPlot
 from MotesPlot import MotesPlot
 from SignalPlot import SignalPlot
+from DRSignalPlot import DRSignalPlot
 from Sample import Sample
+from DR3DExtractor import DR3DExtractor
+from RSSI3DExtractor import RSSI3DExtractor
+from LQI3DExtractor import LQI3DExtractor
+from ThreeDPlot import ThreeDPlot
+from LinePlot import LinePlot
+from MoteFilter import MoteFilter
+import socket
+import struct
 
 MOTE_PREFIX='bbbb::0012:4b00:060d:'
 NUM_CELLS=2
-SECOND_SAMPLE=3
-NUM_SAMPLES=90
+NUM_SAMPLE=50
+
 
 
 def main():
-    connection,ipList=setUp()
+    ipList=setUp()
     sampleList=list()
     plotter=Plotter()
-    #plotter.addPlot(DRPlot())
-    plotter.addPlot(MotesPlot())
-    plotter.addPlot(SignalPlot())
-    for i in range(0,NUM_SAMPLES):
-        sample=getSample(connection,ipList)
-        print '.'
-        if sample != None:
-            sampleList.append(sample)
-            plotter.plotSample(sample)
-        else:
-            connection=resetConnection(connection)
-        time.sleep(SECOND_SAMPLE)
-    connection.close()
+    for ip in ipList:
+        plotter.addPlot(ThreeDPlot(RSSI3DExtractor()),MoteFilter(ip))
+        plotter.addPlot(ThreeDPlot(LQI3DExtractor()),MoteFilter(ip))
+        plotter.addPlot(ThreeDPlot(DR3DExtractor()),MoteFilter(ip))
+    sampleList=startRecording(plotter,ipList)
     raw_input("Press any key to continue...")
     file = open('./data/'+time.strftime("%y%m%d%H%M%S")+'-data.pk','w+')
     pickle.dump(sampleList,file)
+    writeCSV(sampleList)
     file.close()
 
 def setUp():
     connection=coap.coap(udpPort=5683)
     ipList=[]
     print("Enter the 4 last numbers of the IPs of the nodes to analyze or press ENTER to continue:")
-    ip=raw_input(MOTE_PREFIX)
+    ip=raw_input()
     while(ip!=''):
         ipList.append(ip)
-        ip=raw_input(MOTE_PREFIX)
-
+        ip=raw_input()
     putCells=raw_input("Add TX cells?[Y/n]")
     if(putCells=="Y" or putCells==""):
+
         for ip in ipList:
           addCells(connection,ip)
         time.sleep(1)
-    return connection,ipList
-
+    connection.close()
+    return ipList
 def resetConnection(connection):
     connection.close()
     del connection
@@ -60,45 +62,67 @@ def addCells(connection,ip):
     for i in range(0,NUM_CELLS):
         ok='n'
         while(ok=='n'):
-            p=connection.PUT('coap://[{0}{1}]/6t'.format(MOTE_PREFIX,ip),)
+            p=connection.PUT('coap://[{0}]/6t'.format(ip),)
             time.sleep(1)
             ok=raw_input("OK?")
 
-def getSample(connection,ips):
-    s=Sample()
-    for ip in ips:
-        data,signal=getTrafficData(connection,ip)
-        if data == None:
-            return None
-        for e in data:
-            s.addReading(ip,e[0],e[1],e[2])
-        s.setSignal(ip,signal)
-    return s
+def startRecording(plotter,ipList):
+    switchMLog(ipList)
+    soc=socket.socket(socket.AF_INET6,socket.SOCK_DGRAM)
+    soc.bind(('',16792))
+    b=bytearray(56)
+    sampleList=list()
+    for i in range(0,NUM_SAMPLE):
+        size,addr=soc.recvfrom_into(b,56)
+        result=struct.unpack('<'+'BHHbB'*8,str(b))
+        #result = struct.unpack('<'+'b'*56,str(b))
+        newSample=Sample(addr[0])
+        for index in range(0,40,5):
+            channel=result[index]
+            tx=result[index+1]
+            ack=result[index+2]
+            rssi=result[index+3]
+            lqi=result[index+4]
+            #print addr[0].split(':')[-1],'C:'+str(channel),str(ack)+'/'+str(tx),'RSSI='+str(rssi),'LQI='+str(lqi)
+            newSample.addReading(channel,tx,ack,rssi,lqi)
+        plotter.plotSample(newSample)
+        sampleList.append(newSample)
+    switchMLog(ipList)
+    return sampleList
 
-def getTrafficData(connection,ip):
-    try:
-        response=connection.GET('coap://[{0}{1}]/6t'.format(MOTE_PREFIX,ip),)
-    except:
-        print "Error, skipping data"
-        return None
-    stringResponse=''.join([chr(b) for b in response])
-    lines=stringResponse.split('\n');
-    dataTraffic=list()
-    rssi=None
-    lqi=None
-    for line in lines:
-        if ':' in line:
-            slotSplit=line.split(':')
-            slot=int(slotSplit[0],16)
-            dataSplit=slotSplit[1].split('/')
-            numTx=int(dataSplit[0],16)
-            numAck=int(dataSplit[1],16)
-            dataTraffic.append((slot,numTx,numAck))
-        elif ',' in line:
-            signalSplit=line.split(',')
-            rssi=int(signalSplit[0],16)-255
-            lqi=int(signalSplit[1],16)
-    return dataTraffic,(rssi,lqi)
+def switchMLog(ipList):
+    connection=coap.coap(udpPort=5683)
+    for ip in ipList:
+        connection.GET('coap://[{0}]/6t'.format(ip),)
+    connection.close()
+
+def writeCSV(sampleList):
+    file = open('./data/'+time.strftime("%y%m%d%H%M%S")+'-data.csv','w+')
+
+    for sample in sampleList:
+        for channel in sample.getChannelList():
+            line=''
+            line+=str(sample.getTime())
+            line+=','
+            line+=str(sample.getMoteIP())
+            line+=','
+            line+=str(channel)
+            line+=','
+            data=sample.getDataByChannel(channel)
+            line+=str(data[0])
+            line+=','
+            line+=str(data[1])
+            line+=','
+            line+=str(data[2])
+            line+=','
+            line+=str(data[3])
+            line+='\n'
+
+            file.write(line)
+
+    file.close()
+
+
 
 if __name__ == "__main__":
     main()

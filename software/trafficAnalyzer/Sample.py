@@ -2,90 +2,40 @@ import time
 
 class Sample:
 
-    def __init__(self):
+    def __init__(self,moteIp):
         self.timeStamp=time.time()
+        self.moteIp=moteIp
         self.moteData=dict()
-        self.moteSignal=dict()
 
-    def addReading(self,moteIP,slot,txNum,ackNum):
-        self.moteData[(moteIP,slot)]=(txNum,ackNum)
+    def addReading(self,channel,txNum,ackNum,rssi,lqi):
+        self.moteData[channel]=(txNum,ackNum,rssi,lqi)
 
-    def setSignal(self,moteIP,signal):
-        self.moteSignal[moteIP]=signal
+    def getMoteIP(self):
+        return self.moteIp
 
-    def getMotesIP(self):
-        ips=set();
-        for e in self.moteData.keys():
-            ips.add(e[0])
-        return ips
+    def getChannelList(self):
+        return self.moteData.keys()
 
-    def getSlotOffsets(self):
-        slots=set();
-        for e in self.moteData.keys():
-            slots.add(e[1])
-        return slots
-
-    def getDataByMote(self,ip):
-        txNum=0
-        ackNum=0
-        for e in self.moteData.keys():
-            if e[0]==ip:
-                txNum+=self.moteData[e][0]
-                ackNum+=self.moteData[e][1]
-        return (txNum,ackNum),self.moteSignal[ip]
-
-    def getDataBySlot(self,slot):
-        txNum=0
-        ackNum=0
-        for e in self.moteData.keys():
-            if e[1]==slot:
-                txNum+=self.moteData[e][0]
-                ackNum+=self.moteData[e][1]
-                signal=self.moteSignal[e[0]]
-        return (txNum,ackNum),signal
+    def getDataByChannel(self,channel):
+        return self.moteData[channel]
 
     def getData(self):
         return self.moteData
 
+    def getChannelDeliveryRate(self,channel):
+        return self.moteData[channel][1]/float(self.moteData[channel][0])
 
-    def getSlotDeliveryRate(self,slot):
+    def getMoteDeliveryRate(self):
         txSum=0
         ackSum=0
-        for e in self.moteData.keys():
-            if e[1]==slot:
-                txSum+=self.moteData[e][0]
-                ackSum+=self.moteData[e][1]
+        for data in self.moteData.values():
+            txSum+=data[0]
+            ackSum+=data[1]
         return float(ackSum)/float(txSum)
 
-    def getMoteDeliveryRate(self,ip):
-        txSum=0
-        ackSum=0
-        for e in self.moteData.keys():
-            if e[0]==ip:
-                txSum+=self.moteData[e][0]
-                ackSum+=self.moteData[e][1]
-        return float(ackSum)/float(txSum)
-
-    def getDeliveryRate(self):
-        txSum=0
-        ackSum=0
-        for e in self.moteData.values():
-            txSum+=e[0]
-            ackSum+=e[1]
-        return float(ackSum)/float(txSum)
 
     def getTime(self):
         return self.timeStamp
 
-    def getTotalSum(self):
-        txSum=0
-        ackSum=0
-        for e in self.moteData.values():
-            txSum+=e[0]
-            ackSum+=e[1]
-        averageRSSI=sum([s[0] for s in self.moteSignal.values()])/float(len(self.moteSignal))
-        averageLQI=sum([s[1] for s in self.moteSignal.values()])/float(len(self.moteSignal))
-        return (txSum,ackSum),(averageRSSI,averageLQI)
-
     def __str__(self):
-        return str(self.timeStamp)+':'+str(self.moteData)+'@'+self.moteSignal
+        return str(self.timeStamp)+':'+str(self.moteData)
