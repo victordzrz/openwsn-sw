@@ -2,9 +2,6 @@ from coap import coap
 import pickle
 import time
 from Plotter import Plotter
-from DRPlot import DRPlot
-from MotesPlot import MotesPlot
-from SignalPlot import SignalPlot
 from DRSignalPlot import DRSignalPlot
 from Sample import Sample
 from DR3DExtractor import DR3DExtractor
@@ -40,13 +37,13 @@ def main():
 def setUp():
     connection=coap.coap(udpPort=5683)
     ipList=[]
-    print("Enter the 4 last numbers of the IPs of the nodes to analyze or press ENTER to continue:")
+    print("Enter the IPs of the nodes to analyze or press ENTER to continue:")
     ip=raw_input()
     while(ip!=''):
         ipList.append(ip)
         ip=raw_input()
     putCells=raw_input("Add TX cells?[Y/n]")
-    if(putCells=="Y" or putCells==""):
+    if(putCells=="Y" or putCells=="" or putCells=="y"):
 
         for ip in ipList:
           addCells(connection,ip)
@@ -61,7 +58,7 @@ def resetConnection(connection):
 def addCells(connection,ip):
     for i in range(0,NUM_CELLS):
         ok='n'
-        while(ok=='n'):
+        while(ok=='n' or ok=='N'):
             p=connection.PUT('coap://[{0}]/6t'.format(ip),)
             time.sleep(1)
             ok=raw_input("OK?")
