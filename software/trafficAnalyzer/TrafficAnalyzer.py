@@ -15,7 +15,7 @@ import struct
 
 MOTE_PREFIX='bbbb::0012:4b00:060d:'
 NUM_CELLS=2
-NUM_SAMPLE=50
+NUM_SAMPLE=300
 
 
 

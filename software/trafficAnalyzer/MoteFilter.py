@@ -1,4 +1,3 @@
-
 class MoteFilter:
 
     def __init__(self,moteIP):

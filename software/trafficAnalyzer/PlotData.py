@@ -2,9 +2,6 @@ import pickle
 import time
 import sys
 from Plotter import Plotter
-from DRPlot import DRPlot
-from MotesPlot import MotesPlot
-from SignalPlot import SignalPlot
 from Sample import Sample
 from DRSignalPlot import DRSignalPlot
 from DRExtractor import DRExtractor
@@ -15,6 +12,7 @@ from RSSI3DExtractor import RSSI3DExtractor
 from LQI3DExtractor import LQI3DExtractor
 from ThreeDPlot import ThreeDPlot
 from LinePlot import LinePlot
+from MoteFilter import MoteFilter
 
 
 def main():
@@ -23,14 +21,17 @@ def main():
         data=pickle.load(file)
         file.close()
         plotter=Plotter()
-        #plotter.addPlot(LinePlot(DRExtractor(),buffered=True))
-        #plotter.addPlot(LinePlot(LQIExtractor(),buffered=True))
-        #plotter.addPlot(LinePlot(RSSIExtractor(),buffered=True))
-        plotter.addPlot(ThreeDPlot(RSSI3DExtractor()))
-        plotter.addPlot(ThreeDPlot(LQI3DExtractor()))
-        plotter.addPlot(ThreeDPlot(DR3DExtractor()))
+        ipList=set()
+        for i in range(30):
+            ipList.add(data[i].getMoteIP())
+        plotter=Plotter()
+        for ip in ipList:
+            plotter.addPlot(ThreeDPlot(RSSI3DExtractor(),buffered=False,windowSize=15),MoteFilter(ip))
         for sample in data:
             plotter.plotSample(sample)
+            for i in range(0,2):
+                time.sleep(0.005)
+                plotter.animate()
         plotter.show()
         raw_input("Press any key to continue")
 
