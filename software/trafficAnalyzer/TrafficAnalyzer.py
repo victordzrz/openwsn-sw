@@ -2,7 +2,6 @@ from coap import coap
 import pickle
 import time
 from Plotter import Plotter
-from DRSignalPlot import DRSignalPlot
 from Sample import Sample
 from DR3DExtractor import DR3DExtractor
 from RSSI3DExtractor import RSSI3DExtractor
@@ -80,7 +79,7 @@ def startRecording(plotter,ipList):
             ack=result[index+2]
             rssi=result[index+3]
             lqi=result[index+4]
-            #print addr[0].split(':')[-1],'C:'+str(channel),str(ack)+'/'+str(tx),'RSSI='+str(rssi),'LQI='+str(lqi)
+            print addr[0].split(':')[-1],'C:'+str(channel),str(ack)+'/'+str(tx),'RSSI='+str(rssi),'LQI='+str(lqi)
             newSample.addReading(channel,tx,ack,rssi,lqi)
         plotter.plotSample(newSample)
         sampleList.append(newSample)

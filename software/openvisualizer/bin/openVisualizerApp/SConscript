@@ -38,7 +38,7 @@ def uiRunner(target, source, env):
     subEnv['PYTHONPATH'] = pypath
 
     argList = [
-        'python', str(source[0]), 
+        'python2.7', str(source[0]), 
         '-a',     env['BUILD_DIR'],
     ]
     if env['SIMCOUNT']:
