@@ -57,7 +57,7 @@ class ParserMessage(Parser.Parser):
                     sMessage=sMessage+"0x"
             else:
                 if parsingHex:
-                    sMessage=sMessage+format(c,'x')
+                    sMessage=sMessage+format(c,'02x')+' '
                 else:
                     sMessage=sMessage+chr(c)
         #sMessage=''.join([chr(c) for c in message])
